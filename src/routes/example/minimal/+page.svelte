@@ -25,7 +25,7 @@
 	Using jsonplaceholder.typicode.com, which their data is auto refresh by default.
 	<br />
 	<a
-		href="https://github.com/harryhdt/svelte-simple-query/blob/main/routes/example/minimal"
+		href="https://github.com/harryhdt/svelte-simple-query/tree/main/src/routes/example/minimal"
 		target="_blank">Check source</a
 	>
 </p>

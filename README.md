@@ -48,8 +48,8 @@ npm install svelte-simple-query
 
 ## Example
 
-- **[Minimal](https://github.com/harryhdt/svelte-simple-query/blob/main/routes/example/minimal)**
-- **[Basic](https://github.com/harryhdt/svelte-simple-query/blob/main/routes/example/basic)**
+- **[Minimal](https://github.com/harryhdt/svelte-simple-query/tree/main/src/routes/example/minimal)**
+- **[Basic](https://github.com/harryhdt/svelte-simple-query/tree/main/src/routes/example/basic)**
 
 ## Query Setup
 
