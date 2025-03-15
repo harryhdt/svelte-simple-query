@@ -34,6 +34,7 @@ type QueryShape = {
 	retryCount?: number;
 	retryDelay?: number;
 	shouldRetryWhenError?: boolean;
+	clear: () => void;
 };
 
 // Use QueryShape to define Query
@@ -48,7 +49,10 @@ export const Query: QueryShape = {
 			...options
 		}); // Safely update Query
 	},
-	bagHit: {} as Record<string, number>
+	bagHit: {} as Record<string, number>,
+	clear: () => {
+		CacheStore = {};
+	}
 };
 
 // Use QueryShape to define QueryOptions
@@ -74,7 +78,7 @@ const state = $state({ system: {} }) as {
 	};
 };
 
-const CacheStore = {} as {
+let CacheStore = {} as {
 	[key: string]: {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		data: any;
