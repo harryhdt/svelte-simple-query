@@ -34,7 +34,8 @@ type QueryShape = {
 	retryCount?: number;
 	retryDelay?: number;
 	shouldRetryWhenError?: boolean;
-	clear: () => void;
+	clear: (endpoint?: string) => void;
+	clearGroup: (group?: string) => void;
 };
 
 // Use QueryShape to define Query
@@ -54,14 +55,44 @@ export const Query: QueryShape = {
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-expect-error
 		delete options.clear;
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
+		delete options.clearGroup;
 		Object.assign(Query, {
 			...Query,
 			...options
 		}); // Safely update Query
 	},
 	bagHit: {} as Record<string, number>,
-	clear: () => {
-		CacheStore = {};
+	clear: (endpoint) => {
+		if (endpoint) {
+			CacheStore[endpoint] = null;
+			state[endpoint].data = null;
+			state[endpoint].isError = false;
+			state[endpoint].isLoading = false;
+			Query.bagHit[endpoint] = 0;
+			return;
+		} else {
+			CacheStore = {};
+			Object.keys(state).forEach((key) => {
+				state[key].data = null;
+				state[key].isError = false;
+				state[key].isLoading = false;
+				Query.bagHit[key] = 0;
+			});
+			return;
+		}
+	},
+	clearGroup: (group) => {
+		Object.keys(state).forEach((key) => {
+			if (state[key].group === group) {
+				CacheStore[key] = null;
+				state[key].data = null;
+				state[key].isError = false;
+				state[key].isLoading = false;
+				Query.bagHit[key] = 0;
+			}
+		});
 	}
 };
 
@@ -70,7 +101,7 @@ type QueryOptions = Omit<
 	{
 		[key in keyof QueryShape]?: QueryShape[key];
 	},
-	'setup' | 'bagHit' | 'clear'
+	'setup' | 'bagHit' | 'clear' | 'clearGroup'
 >;
 
 const state = $state({ system: {} }) as {
@@ -105,9 +136,10 @@ type StateQuery<T> = {
 	mutate: (options?: MutateOptions) => Promise<void>;
 	clear: () => void;
 	endpoint: string;
+	group?: string;
 };
 
-export const useQuery = <T>(endpoint: string, options?: QueryOptions) => {
+export const useQuery = <T>(endpoint: string, options?: QueryOptions & { group?: string }) => {
 	//
 	if (!state[endpoint]) {
 		state[endpoint] = {
@@ -118,7 +150,8 @@ export const useQuery = <T>(endpoint: string, options?: QueryOptions) => {
 			refetch: null!,
 			mutate: null!,
 			clear: null!,
-			endpoint
+			endpoint,
+			group: options?.group
 		};
 	}
 	if (!state.system?.[endpoint]) {
@@ -200,10 +233,10 @@ export const useQuery = <T>(endpoint: string, options?: QueryOptions) => {
 	//
 	if (!state[endpoint].fetch) {
 		state[endpoint].fetch = async () => {
-			TheQuery.bagHit[endpoint] = (TheQuery.bagHit[endpoint] || 0) + 1;
-			if (TheQuery.bagHit[endpoint] > 1) return;
+			Query.bagHit[endpoint] = (Query.bagHit[endpoint] || 0) + 1;
+			if (Query.bagHit[endpoint] > 1) return;
 			await fetchData();
-			TheQuery.bagHit[endpoint] = 0;
+			Query.bagHit[endpoint] = 0;
 		};
 	}
 	if (!state[endpoint].refetch) {
@@ -228,7 +261,7 @@ export const useQuery = <T>(endpoint: string, options?: QueryOptions) => {
 			state[endpoint].data = null;
 			state[endpoint].isError = false;
 			state[endpoint].isLoading = false;
-			TheQuery.bagHit[endpoint] = 0;
+			Query.bagHit[endpoint] = 0;
 		};
 	}
 	//
