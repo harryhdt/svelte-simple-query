@@ -51,7 +51,7 @@ npm install svelte-simple-query
 - **[Minimal](https://github.com/harryhdt/svelte-simple-query/tree/main/src/routes/example/minimal)**
 - **[Basic](https://github.com/harryhdt/svelte-simple-query/tree/main/src/routes/example/basic)**
 
-## Query Setup
+## Query API
 
 `Query.setup(options)` for the global configuration of queries.
 
@@ -65,6 +65,12 @@ npm install svelte-simple-query
 - **`shouldRetryWhenError`** _(boolean)_ - Whether to retry on failure, default `false`.
 - **`retryCount`** _(number)_ - Number of retries on failure, default `5`.
 - **`retryDelay`** _(number)_ - Delay between retries in milliseconds, default `10000`.
+
+.
+
+`Query.clear()`
+
+Clears cached query results and resets internal query states. Useful when logging out users, refreshing data, or preventing stale responses
 
 ## API
 
