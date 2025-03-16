@@ -50,6 +50,7 @@ npm install svelte-simple-query
 
 - **[Minimal](https://github.com/harryhdt/svelte-simple-query/tree/main/src/routes/example/minimal)**
 - **[Basic](https://github.com/harryhdt/svelte-simple-query/tree/main/src/routes/example/basic)**
+- **[Pagination](https://github.com/harryhdt/svelte-simple-query/tree/main/src/routes/example/pagination)**
 
 ## Query API
 
@@ -66,11 +67,42 @@ npm install svelte-simple-query
 - **`retryCount`** _(number)_ - Number of retries on failure, default `5`.
 - **`retryDelay`** _(number)_ - Delay between retries in milliseconds, default `10000`.
 
-.
+<br>
 
-`Query.clear()`
+`Query.clear(endpoint?: optional)`
 
-Clears cached query results and resets internal query states. Useful when logging out users, refreshing data, or preventing stale responses
+Clears cached query results and resets internal query states. Useful when logging out users, refreshing data, or preventing stale responses.
+
+**Parameters:**
+
+- endpoint (optional, string) - If provided, only clears the cache for the specified endpoint.
+
+**Usage**
+
+```
+Query.clear(); // Clears all cached queries
+Query.clear("/users"); // Clears cache only for the "/users" endpoint
+```
+
+<br>
+
+`Query.clearGroup(group: string)`
+
+Clears all cached queries associated with a specific group. This is useful for managing grouped queries, such as clearing related data when switching views or updating dependent resources.
+
+**Parameters:**
+
+- group (string) - The name of the query group to clear.
+
+**Usage**
+
+```
+const usersPageA = useQuery("/users?page=a", { group: "user-data" });
+const usersPageB = useQuery("/users?page=b", { group: "user-data" });
+Query.clearGroup("user-data"); // Clears all queries tagged under "user-data"
+```
+
+<br>
 
 ## API
 
