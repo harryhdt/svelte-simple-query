@@ -44,6 +44,16 @@ export const Query: QueryShape = {
 	fetcher: defaultFetcher,
 	cacheTimeout: 2000,
 	setup: (options: QueryOptions) => {
+		// Safely update Query
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
+		delete options.setup;
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
+		delete options.bagHit;
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
+		delete options.clear;
 		Object.assign(Query, {
 			...Query,
 			...options
@@ -60,7 +70,7 @@ type QueryOptions = Omit<
 	{
 		[key in keyof QueryShape]?: QueryShape[key];
 	},
-	'setup' | 'bagHit'
+	'setup' | 'bagHit' | 'clear'
 >;
 
 const state = $state({ system: {} }) as {
@@ -120,26 +130,27 @@ export const useQuery = <T>(endpoint: string, options?: QueryOptions) => {
 		};
 	}
 	//
+	const TheQuery = { ...Query };
 	if (options) {
-		Query.setup(options);
+		TheQuery.setup(options);
 	}
 	const fetchData = async () => {
 		try {
-			if (Query.onLoadingSlow) {
+			if (TheQuery.onLoadingSlow) {
 				clearTimeout(state.system[endpoint].onLoadingSlowTimeout);
 				state.system[endpoint].onLoadingSlowTimeout = setTimeout(() => {
-					if (state[endpoint].isLoading && Query.onLoadingSlow) {
-						Query.onLoadingSlow(state[endpoint]);
+					if (state[endpoint].isLoading && TheQuery.onLoadingSlow) {
+						TheQuery.onLoadingSlow(state[endpoint]);
 					}
-				}, Query.loadingSlowTimeout ?? 30000);
+				}, TheQuery.loadingSlowTimeout ?? 30000);
 			}
 			if (CacheStore[endpoint]) {
 				state[endpoint].data = CacheStore[endpoint].data;
 				if (
-					Query.cacheTimeout !== -1 &&
-					new Date().getTime() - CacheStore[endpoint].time > Query.cacheTimeout
+					TheQuery.cacheTimeout !== -1 &&
+					new Date().getTime() - CacheStore[endpoint].time > TheQuery.cacheTimeout
 				) {
-					const json = await Query.fetcher(endpoint);
+					const json = await TheQuery.fetcher(endpoint);
 					//
 					CacheStore[endpoint] = {
 						data: json,
@@ -147,39 +158,39 @@ export const useQuery = <T>(endpoint: string, options?: QueryOptions) => {
 					};
 					state[endpoint].data = json;
 					state[endpoint].isError = false;
-					if (Query.onSuccess) Query.onSuccess(state[endpoint]);
+					if (TheQuery.onSuccess) TheQuery.onSuccess(state[endpoint]);
 				}
 			} else {
 				if (!state.system[endpoint].disableLoading) {
 					state[endpoint].isLoading = true;
 				}
-				const json = await Query.fetcher(endpoint);
+				const json = await TheQuery.fetcher(endpoint);
 				CacheStore[endpoint] = {
 					data: json,
 					time: new Date().getTime()
 				};
 				state[endpoint].data = json;
 				state[endpoint].isError = false;
-				if (Query.onSuccess) Query.onSuccess(state[endpoint]);
+				if (TheQuery.onSuccess) TheQuery.onSuccess(state[endpoint]);
 			}
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (error: any) {
 			CacheStore[endpoint] = null;
 			state[endpoint].isError = error;
 			state[endpoint].data = null;
-			if (Query.onError) Query.onError(state[endpoint], error);
-			if (Query.shouldRetryWhenError) {
+			if (TheQuery.onError) TheQuery.onError(state[endpoint], error);
+			if (TheQuery.shouldRetryWhenError) {
 				clearTimeout(state.system[endpoint].shouldRetryWhenErrorTimeout);
 				state.system[endpoint].shouldRetryWhenErrorTimeout = setTimeout(
 					() => {
-						if (state.system[endpoint].shouldRetryWhenErrorAttempt >= (Query.retryCount ?? 5)) {
+						if (state.system[endpoint].shouldRetryWhenErrorAttempt >= (TheQuery.retryCount ?? 5)) {
 							state.system[endpoint].disableLoading = false;
 							return;
 						}
 						state.system[endpoint].shouldRetryWhenErrorAttempt++;
 						state[endpoint].refetch({ disableLoading: true });
 					},
-					Query.retryDelay && Query.retryDelay >= 1000 ? Query.retryDelay : 10000
+					TheQuery.retryDelay && TheQuery.retryDelay >= 1000 ? TheQuery.retryDelay : 10000
 				);
 			}
 		} finally {
@@ -189,10 +200,10 @@ export const useQuery = <T>(endpoint: string, options?: QueryOptions) => {
 	//
 	if (!state[endpoint].fetch) {
 		state[endpoint].fetch = async () => {
-			Query.bagHit[endpoint] = (Query.bagHit[endpoint] || 0) + 1;
-			if (Query.bagHit[endpoint] > 1) return;
+			TheQuery.bagHit[endpoint] = (TheQuery.bagHit[endpoint] || 0) + 1;
+			if (TheQuery.bagHit[endpoint] > 1) return;
 			await fetchData();
-			Query.bagHit[endpoint] = 0;
+			TheQuery.bagHit[endpoint] = 0;
 		};
 	}
 	if (!state[endpoint].refetch) {
@@ -217,7 +228,7 @@ export const useQuery = <T>(endpoint: string, options?: QueryOptions) => {
 			state[endpoint].data = null;
 			state[endpoint].isError = false;
 			state[endpoint].isLoading = false;
-			Query.bagHit[endpoint] = 0;
+			TheQuery.bagHit[endpoint] = 0;
 		};
 	}
 	//

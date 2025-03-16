@@ -7,4 +7,7 @@
 	<li>
 		<a href="/example/basic"> Basic </a>
 	</li>
+	<li>
+		<a href="/example/pagination"> Pagination </a>
+	</li>
 </ol>
