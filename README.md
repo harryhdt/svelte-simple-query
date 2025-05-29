@@ -106,7 +106,7 @@ Query.clearGroup("user-data"); // Clears all queries tagged under "user-data"
 
 `Query.group(group: string)`
 
-Clears all cached queries associated with a specific group. This is useful for managing grouped queries, such as clearing related data when switching views or updating dependent resources.
+Retrun all queries associated with a specific group. This is useful for managing grouped queries, such as clearing related data when switching views or updating dependent resources.
 
 **Parameters:**
 
