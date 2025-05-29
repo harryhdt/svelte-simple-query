@@ -36,6 +36,8 @@ type QueryShape = {
 	shouldRetryWhenError?: boolean;
 	clear: (endpoint?: string) => void;
 	clearGroup: (group?: string) => void;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	group: (group: string) => StateQuery<any>[];
 };
 
 // Use QueryShape to define Query
@@ -58,6 +60,9 @@ export const Query: QueryShape = {
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-expect-error
 		delete options.clearGroup;
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-expect-error
+		delete options.group;
 		Object.assign(Query, {
 			...Query,
 			...options
@@ -93,6 +98,15 @@ export const Query: QueryShape = {
 				Query.bagHit[key] = 0;
 			}
 		});
+	},
+	group: (group) => {
+		return Object.keys(state)
+			.filter((key) => {
+				return state[key].group === group || state[key].groups?.includes(group);
+			})
+			.map((key) => {
+				return state[key];
+			});
 	}
 };
 
@@ -101,7 +115,7 @@ type QueryOptions = Omit<
 	{
 		[key in keyof QueryShape]?: QueryShape[key];
 	},
-	'setup' | 'bagHit' | 'clear' | 'clearGroup'
+	'setup' | 'bagHit' | 'clear' | 'clearGroup' | 'group'
 >;
 
 const state = $state({ system: {} }) as {
@@ -137,9 +151,13 @@ type StateQuery<T> = {
 	clear: () => void;
 	endpoint: string;
 	group?: string;
+	groups?: string[];
 };
 
-export const useQuery = <T>(endpoint: string, options?: QueryOptions & { group?: string }) => {
+export const useQuery = <T>(
+	endpoint: string,
+	options?: QueryOptions & { group?: string; groups?: string[] }
+) => {
 	//
 	if (!state[endpoint]) {
 		state[endpoint] = {
@@ -151,7 +169,8 @@ export const useQuery = <T>(endpoint: string, options?: QueryOptions & { group?:
 			mutate: null!,
 			clear: null!,
 			endpoint,
-			group: options?.group
+			group: options?.group,
+			groups: options?.groups
 		};
 	}
 	if (!state.system?.[endpoint]) {
@@ -276,8 +295,20 @@ type MutateOptions = {
 	refetch?: boolean;
 };
 
-export const useSingleQuery = <T>(endpointCallBack: (key: string) => string) => {
-	return new Proxy({}, { get: (_, key) => useQuery(endpointCallBack(key.toString())) }) as {
+export const useSingleQuery = <T>(
+	endpointCallBack: (key: string) => string,
+	options?: QueryOptions & { group?: string; groups?: string[] }
+) => {
+	return new Proxy(
+		{},
+		{
+			get: (_, key) => {
+				// Clone the options each time to avoid mutation problems
+				const clonedOptions = options ? { ...options } : undefined;
+				return useQuery(endpointCallBack(key.toString()), clonedOptions);
+			}
+		}
+	) as {
 		[key: string]: ReturnType<typeof useQuery<T>>;
 	};
 };
