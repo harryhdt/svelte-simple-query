@@ -104,6 +104,26 @@ Query.clearGroup("user-data"); // Clears all queries tagged under "user-data"
 
 <br>
 
+`Query.group(group: string)`
+
+Clears all cached queries associated with a specific group. This is useful for managing grouped queries, such as clearing related data when switching views or updating dependent resources.
+
+**Parameters:**
+
+- group (string) - The name of the query group to clear.
+
+**Usage**
+
+```
+const usersPageA = useQuery("/users?page=a", { group: "user-data" });
+const usersPageB = useQuery("/users?page=b", { group: "userQuery-data" });
+const usersPageB = useQuery("/users", { groups: ["userQuery-data", "user-data"] });
+Query.group("user-data"); // Return all queries tagged under "user-data"
+Query.group("userQuery-data"); // Return all queries tagged under "userQuery-data"
+```
+
+<br>
+
 ## API
 
 - **`useQuery(endpoint, options)`**: Fetch data from the specified endpoint with optional settings.
