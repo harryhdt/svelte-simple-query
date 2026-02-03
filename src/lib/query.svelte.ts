@@ -312,6 +312,7 @@ export const useSingleQuery = <T>(
 		[key: string]: ReturnType<typeof useQuery<T>>;
 	};
 };
+export const useDynamicQueries = useSingleQuery;
 
 export const mutate = async (endpoint: string, options?: MutateOptions) => {
 	const defaultOptions = { refetch: options?.data || options?.populateCache ? false : true };
