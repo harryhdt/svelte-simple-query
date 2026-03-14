@@ -1,1 +1,1 @@
-export { Query, useQuery, useSingleQuery, mutate } from './query.svelte.js';
+export { Query, useQuery, useSingleQuery, mutate, useDynamicQueries } from './query.svelte.js';
