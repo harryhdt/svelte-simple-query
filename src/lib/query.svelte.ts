@@ -211,6 +211,7 @@ export const useQuery = <T>(
 					state[endpoint].data = json;
 					state[endpoint].isError = false;
 					if (TheQuery.onSuccess) TheQuery.onSuccess(state[endpoint]);
+					state.system[endpoint].shouldRetryWhenErrorAttempt = 0;
 				}
 			} else {
 				if (!state.system[endpoint].disableLoading) {
@@ -224,6 +225,7 @@ export const useQuery = <T>(
 				state[endpoint].data = json;
 				state[endpoint].isError = false;
 				if (TheQuery.onSuccess) TheQuery.onSuccess(state[endpoint]);
+				state.system[endpoint].shouldRetryWhenErrorAttempt = 0;
 			}
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (error: any) {
@@ -315,6 +317,10 @@ export const useSingleQuery = <T>(
 export const useDynamicQueries = useSingleQuery;
 
 export const mutate = async (endpoint: string, options?: MutateOptions) => {
+	if (!state[endpoint]) {
+		console.warn(`[Query] No query found for endpoint: ${endpoint}`);
+		return;
+	}
 	const defaultOptions = { refetch: options?.data || options?.populateCache ? false : true };
 	options = { ...defaultOptions, ...options };
 	//
