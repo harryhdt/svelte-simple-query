@@ -127,9 +127,10 @@ const state = $state({ system: {} }) as {
 		[key: string]: {
 			onLoadingSlowTimeout: number;
 			shouldRetryWhenErrorTimeout: number;
-			shouldRetryWhenErrorAttempt: number;
 			disableLoading: boolean;
 			inFlightPromise: Promise<void> | null;
+			lastErrorSequenceId: number;
+			retryAttemptForSequence: number;
 		};
 	};
 };
@@ -182,9 +183,10 @@ export const useQuery = <T>(
 		state.system[endpoint] = {
 			onLoadingSlowTimeout: 0,
 			shouldRetryWhenErrorTimeout: 0,
-			shouldRetryWhenErrorAttempt: 0,
 			disableLoading: false,
-			inFlightPromise: null
+			inFlightPromise: null,
+			lastErrorSequenceId: 0,
+			retryAttemptForSequence: 0
 		};
 	}
 	//
@@ -208,6 +210,12 @@ export const useQuery = <T>(
 					TheQuery.cacheTimeout !== -1 &&
 					new Date().getTime() - CacheStore[endpoint].time > TheQuery.cacheTimeout
 				) {
+					// cacheTimeout = -1 means cache never expires (cache forever)
+					// For no-cache behavior, use cacheTimeout: 0
+					// Set loading true: refreshing stale cache in background
+					if (!state.system[endpoint].disableLoading) {
+						state[endpoint].isLoading = true;
+					}
 					const json = await TheQuery.fetcher(endpoint);
 					//
 					CacheStore[endpoint] = {
@@ -217,7 +225,7 @@ export const useQuery = <T>(
 					state[endpoint].data = json;
 					state[endpoint].isError = false;
 					if (TheQuery.onSuccess) TheQuery.onSuccess(state[endpoint]);
-					state.system[endpoint].shouldRetryWhenErrorAttempt = 0;
+					state.system[endpoint].retryAttemptForSequence = 0;
 				}
 			} else {
 				if (!state.system[endpoint].disableLoading) {
@@ -231,7 +239,7 @@ export const useQuery = <T>(
 				state[endpoint].data = json;
 				state[endpoint].isError = false;
 				if (TheQuery.onSuccess) TheQuery.onSuccess(state[endpoint]);
-				state.system[endpoint].shouldRetryWhenErrorAttempt = 0;
+				state.system[endpoint].retryAttemptForSequence = 0;
 			}
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (error: any) {
@@ -241,13 +249,21 @@ export const useQuery = <T>(
 			if (TheQuery.onError) TheQuery.onError(state[endpoint], error);
 			if (TheQuery.shouldRetryWhenError) {
 				clearTimeout(state.system[endpoint].shouldRetryWhenErrorTimeout);
+				// Generate unique sequence ID for this error event to prevent race conditions
+				const errorSequenceId = Date.now();
+				state.system[endpoint].lastErrorSequenceId = errorSequenceId;
+				state.system[endpoint].retryAttemptForSequence = 0;
 				state.system[endpoint].shouldRetryWhenErrorTimeout = setTimeout(
 					() => {
-						if (state.system[endpoint].shouldRetryWhenErrorAttempt >= (TheQuery.retryCount ?? 5)) {
+						// Only retry if still in same error sequence
+						if (state.system[endpoint].lastErrorSequenceId !== errorSequenceId) {
+							return;
+						}
+						if (state.system[endpoint].retryAttemptForSequence >= (TheQuery.retryCount ?? 5)) {
 							state.system[endpoint].disableLoading = false;
 							return;
 						}
-						state.system[endpoint].shouldRetryWhenErrorAttempt++;
+						state.system[endpoint].retryAttemptForSequence++;
 						state[endpoint].refetch({ disableLoading: true });
 					},
 					TheQuery.retryDelay && TheQuery.retryDelay >= 1000 ? TheQuery.retryDelay : 10000
