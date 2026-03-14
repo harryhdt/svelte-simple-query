@@ -129,10 +129,15 @@ const state = $state({ system: {} }) as {
 			shouldRetryWhenErrorTimeout: number;
 			shouldRetryWhenErrorAttempt: number;
 			disableLoading: boolean;
+			inFlightPromise: Promise<void> | null;
 		};
 	};
 };
 
+// Known Limitation: state and CacheStore objects grow unbounded for dynamic endpoints.
+// After many paginated/filtered queries, old entries remain in memory.
+// Acceptable for most apps, but heavy dynamic usage (10k+ unique queries) may cause memory bloat.
+// Consider: implementing LRU eviction, manual purge(), or accepting the limitation.
 let CacheStore = {} as {
 	[key: string]: {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -178,7 +183,8 @@ export const useQuery = <T>(
 			onLoadingSlowTimeout: 0,
 			shouldRetryWhenErrorTimeout: 0,
 			shouldRetryWhenErrorAttempt: 0,
-			disableLoading: false
+			disableLoading: false,
+			inFlightPromise: null
 		};
 	}
 	//
@@ -255,9 +261,17 @@ export const useQuery = <T>(
 	if (!state[endpoint].fetch) {
 		state[endpoint].fetch = async () => {
 			Query.bagHit[endpoint] = (Query.bagHit[endpoint] || 0) + 1;
-			if (Query.bagHit[endpoint] > 1) return;
-			await fetchData();
+			if (Query.bagHit[endpoint] > 1) {
+				// Deduplicated request: wait for in-flight fetch to complete
+				if (state.system[endpoint].inFlightPromise) {
+					await state.system[endpoint].inFlightPromise;
+				}
+				return;
+			}
+			state.system[endpoint].inFlightPromise = fetchData();
+			await state.system[endpoint].inFlightPromise;
 			Query.bagHit[endpoint] = 0;
+			state.system[endpoint].inFlightPromise = null;
 		};
 	}
 	if (!state[endpoint].refetch) {
