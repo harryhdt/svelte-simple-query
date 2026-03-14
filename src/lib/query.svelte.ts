@@ -226,6 +226,7 @@ export const useQuery = <T>(
 					state[endpoint].isError = false;
 					if (TheQuery.onSuccess) TheQuery.onSuccess(state[endpoint]);
 					state.system[endpoint].retryAttemptForSequence = 0;
+					state.system[endpoint].disableLoading = false; // Reset temp suppression after successful fetch
 				}
 			} else {
 				if (!state.system[endpoint].disableLoading) {
@@ -240,6 +241,7 @@ export const useQuery = <T>(
 				state[endpoint].isError = false;
 				if (TheQuery.onSuccess) TheQuery.onSuccess(state[endpoint]);
 				state.system[endpoint].retryAttemptForSequence = 0;
+				state.system[endpoint].disableLoading = false; // Reset temp suppression after successful fetch
 			}
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (error: any) {
