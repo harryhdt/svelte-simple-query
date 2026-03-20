@@ -485,7 +485,7 @@ if (query.isError) {
 ### Cache Behavior
 
 - **Cache Hit:** Returns cached data immediately if not expired
-- **Cache Expired:** Returns old data visually while fetching fresh data in background (`isLoading` = true)
+- **Cache Expired:** Returns old data visually while fetching fresh data in background (may not set `isLoading`)
 - **Stale While Revalidate:** Default behavior compatible with real-world UX patterns
 
 Cache TTL modes:

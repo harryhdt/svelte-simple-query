@@ -2,6 +2,17 @@
 
 All notable changes to this project will documented in this file.
 
+## [0.0.6] - 2026-03-20
+
+### ♻️ Refactor
+
+- **Loading State**: Removed the forced `isLoading = true` assignment when refreshing a stale cache in the background. Background refresh now preserves the existing visible data without toggling the query's loading flag to avoid UI flicker.
+- **Comments**: Cleaned up several unnecessary inline comments in `useQuery` for readability.
+
+### 📌 Notes for consumers
+
+- This refactor intentionally keeps the old data visible during a stale-refresh and does not set `isLoading` for that background fetch. If you relied on `isLoading` to indicate background refreshes, update your UI logic to use `onLoadingSlow` / `onSuccess` callbacks or watch for cache `time` differences.
+
 ## [0.0.5] - 2026-03-14
 
 ### 🐛 Bug Fixes
