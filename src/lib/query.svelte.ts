@@ -210,12 +210,6 @@ export const useQuery = <T>(
 					TheQuery.cacheTimeout !== -1 &&
 					new Date().getTime() - CacheStore[endpoint].time > TheQuery.cacheTimeout
 				) {
-					// cacheTimeout = -1 means cache never expires (cache forever)
-					// For no-cache behavior, use cacheTimeout: 0
-					// Set loading true: refreshing stale cache in background
-					if (!state.system[endpoint].disableLoading) {
-						state[endpoint].isLoading = true;
-					}
 					const json = await TheQuery.fetcher(endpoint);
 					//
 					CacheStore[endpoint] = {
