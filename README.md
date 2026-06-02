@@ -519,12 +519,14 @@ Fetch data from a specific endpoint.
 - `options.*`: Any Query.setup() option can be overridden locally for this query
 
 **Note:** Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
+When the same `endpoint` is registered more than once, the first `group` / `groups` assignment wins. Later `useQuery()` calls reuse the existing query state and do not update its group tags.
 
 **Group Management:**
 
 - A query can have either a single `group` OR multiple `groups` tags (or both)
 - `Query.group('tag')` returns all queries with that tag (from either group or groups)
 - `Query.clearGroup('tag')` clears all queries associated with that tag
+- If you need different group tags, use a different endpoint key or clear the existing query before recreating it
 
 ```typescript
 // Single group
@@ -635,8 +637,8 @@ query.data; // The fetched data (T | null)
 query.isLoading; // Boolean - currently fetching?
 query.isError; // Error message string or false
 query.endpoint; // The API endpoint string
-query.group; // Assigned group tag (if any)
-query.groups; // Assigned group tags array (if any)
+query.group; // Assigned group tag (if any, set on first registration)
+query.groups; // Assigned group tags array (if any, set on first registration)
 ```
 
 **Methods:**
