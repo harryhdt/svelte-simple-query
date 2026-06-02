@@ -35,6 +35,7 @@ type QueryShape = {
 	retryDelay?: number;
 	shouldRetryWhenError?: boolean;
 	clear: (endpoint?: string) => void;
+	clearExpired: () => void;
 	clearGroup: (group?: string) => void;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	group: (group: string) => StateQuery<any>[];
@@ -88,6 +89,21 @@ export const Query: QueryShape = {
 			return;
 		}
 	},
+	clearExpired: () => {
+		Object.keys(CacheStore).forEach((key) => {
+			const cache = CacheStore[key];
+			if (!cache || cache.cacheTimeout === -1 || Date.now() - cache.time <= cache.cacheTimeout) {
+				return;
+			}
+			CacheStore[key] = null;
+			Query.bagHit[key] = 0;
+			if (state[key]) {
+				state[key].data = null;
+				state[key].isError = false;
+				state[key].isLoading = false;
+			}
+		});
+	},
 	clearGroup: (group) => {
 		Object.keys(state).forEach((key) => {
 			if (state[key].group === group) {
@@ -115,7 +131,7 @@ type QueryOptions = Omit<
 	{
 		[key in keyof QueryShape]?: QueryShape[key];
 	},
-	'setup' | 'bagHit' | 'clear' | 'clearGroup' | 'group'
+	'setup' | 'bagHit' | 'clear' | 'clearExpired' | 'clearGroup' | 'group'
 >;
 
 const state = $state({ system: {} }) as {
@@ -144,6 +160,7 @@ let CacheStore = {} as {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		data: any;
 		time: number;
+		cacheTimeout: number;
 	} | null;
 };
 
@@ -207,14 +224,15 @@ export const useQuery = <T>(
 			if (CacheStore[endpoint]) {
 				state[endpoint].data = CacheStore[endpoint].data;
 				if (
-					TheQuery.cacheTimeout !== -1 &&
-					new Date().getTime() - CacheStore[endpoint].time > TheQuery.cacheTimeout
+					CacheStore[endpoint].cacheTimeout !== -1 &&
+					new Date().getTime() - CacheStore[endpoint].time > CacheStore[endpoint].cacheTimeout
 				) {
 					const json = await TheQuery.fetcher(endpoint);
 					//
 					CacheStore[endpoint] = {
 						data: json,
-						time: new Date().getTime()
+						time: new Date().getTime(),
+						cacheTimeout: TheQuery.cacheTimeout
 					};
 					state[endpoint].data = json;
 					state[endpoint].isError = false;
@@ -229,7 +247,8 @@ export const useQuery = <T>(
 				const json = await TheQuery.fetcher(endpoint);
 				CacheStore[endpoint] = {
 					data: json,
-					time: new Date().getTime()
+					time: new Date().getTime(),
+					cacheTimeout: TheQuery.cacheTimeout
 				};
 				state[endpoint].data = json;
 				state[endpoint].isError = false;
@@ -357,7 +376,8 @@ export const mutate = async (endpoint: string, options?: MutateOptions) => {
 	if (data !== undefined) {
 		CacheStore[endpoint] = {
 			data,
-			time: new Date().getTime()
+			time: new Date().getTime(),
+			cacheTimeout: CacheStore[endpoint]?.cacheTimeout ?? Query.cacheTimeout
 		};
 		state[endpoint].data = data;
 	}
