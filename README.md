@@ -518,9 +518,27 @@ Fetch data from a specific endpoint.
 - `options.groups`: Array of group tags (query appears in multiple groups)
 - `options.*`: Any Query.setup() option can be overridden locally for this query
 
-**Note:** Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
-<br>
-Query identity is based on endpoint. If the same endpoint is registered multiple times, all subsequent registrations reuse the original query instance. Group metadata is only assigned during the first registration.
+**Note:**
+
+> 1. Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
+
+### Example
+
+```ts
+Query.setup({
+	cacheTimeout: 60000,
+	shouldRetryWhenError: true
+});
+
+const users = useQuery('/users', {
+	cacheTimeout: 0,
+	shouldRetryWhenError: false
+});
+```
+
+The local options apply only to this query instance and override the global defaults configured via Query.setup().
+
+> 2. Query identity is based on endpoint. If the same endpoint is registered multiple times, all subsequent registrations reuse the original query instance. Group metadata is only assigned during the first registration.
 
 ### Example
 
