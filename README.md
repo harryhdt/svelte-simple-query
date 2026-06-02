@@ -519,7 +519,27 @@ Fetch data from a specific endpoint.
 - `options.*`: Any Query.setup() option can be overridden locally for this query
 
 **Note:** Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
-When the same `endpoint` is registered more than once, the first `group` / `groups` assignment wins. Later `useQuery()` calls reuse the existing query state and do not update its group tags.
+<br>
+Query identity is based on endpoint. If the same endpoint is registered multiple times, all subsequent registrations reuse the original query instance. Group metadata is only assigned during the first registration.
+
+### Example
+
+```ts
+const q1 = useQuery('/users', {
+	group: 'admin'
+});
+
+const q2 = useQuery('/users', {
+	group: 'staff'
+});
+
+q1 === q2; // true
+
+Query.group('admin'); // contains query
+Query.group('staff'); // empty
+```
+
+Because query identity is based on endpoint, the second registration reuses the existing query instance rather than creating a new one.
 
 **Group Management:**
 
