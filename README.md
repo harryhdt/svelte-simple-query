@@ -518,6 +518,11 @@ Fetch data from a specific endpoint.
 - `options.groups`: Array of group tags (query appears in multiple groups)
 - `options.*`: Any Query.setup() option can be overridden locally for this query
 
+**Cache timeout behavior:**
+
+- Each cache entry stores the `cacheTimeout` that was active when the query result was cached
+- `Query.clearExpired()` uses that stored timeout per entry, not the global `Query.cacheTimeout`
+
 **Note:** Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
 
 **Group Management:**
@@ -616,6 +621,14 @@ Clears all queries in a specific group.
 Query.clearGroup('user-data');
 ```
 
+#### `Query.clearExpired()`
+
+Clears only expired cache entries based on each entry's stored `cacheTimeout`.
+
+```typescript
+Query.clearExpired();
+```
+
 #### `Query.group(group)`
 
 Returns all queries associated with a group.
@@ -665,6 +678,7 @@ The library maintains an unbounded cache and state objects for each unique endpo
 
 - Call `Query.clear(endpoint)` for stale queries you no longer need
 - Call `Query.clearGroup(group)` to batch-clear related queries
+- Call `Query.clearExpired()` to remove only expired cache entries while preserving fresh ones
 - Consider implementing LRU eviction in your application layer
 - Monitor memory in dev tools for long-running sessions
 
