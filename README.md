@@ -418,19 +418,19 @@ Query.setup({
 
 **Options:**
 
-| Option                 | Type     | Default | Description                                                    |
-| ---------------------- | -------- | ------- | -------------------------------------------------------------- |
-| `baseURI`              | string   | -       | Base API endpoint                                              |
-| `baseInit`             | object   | -       | Default fetch options (headers, credentials, etc.)             |
-| `fetcher`              | function | -       | Custom fetch implementation (defaults to native fetch)         |
-| `cacheTimeout`         | number   | 2000    | Cache expiration in ms. Use `-1` for permanent, `0` to disable |
-| `onError`              | function | -       | Called on error: `(query, error) => void`                      |
-| `onSuccess`            | function | -       | Called on success: `(query) => void`                           |
-| `loadingSlowTimeout`   | number   | 30000   | Threshold for slow loading indicator (ms)                      |
-| `onLoadingSlow`        | function | -       | Called when loading exceeds threshold: `(query) => void`       |
-| `shouldRetryWhenError` | boolean  | false   | Automatically retry failed queries                             |
-| `retryCount`           | number   | 5       | Maximum retry attempts                                         |
-| `retryDelay`           | number   | 10000   | Delay between retries in ms                                    |
+| Option                  | Type     | Default | Description                                                    |
+| ----------------------- | -------- | ------- | -------------------------------------------------------------- |
+| `baseURI`               | string   | -       | Base API endpoint                                              |
+| `baseInit`              | object   | -       | Default fetch options (headers, credentials, etc.)             |
+| `fetcher`               | function | -       | Custom fetch implementation (defaults to native fetch)         |
+| `cacheTimeout`          | number   | 2000    | Cache expiration in ms. Use `-1` for permanent, `0` to disable |
+| `onError`               | function | -       | Called on error: `(query, error) => void`                      |
+| `onSuccess`             | function | -       | Called on success: `(query) => void`                           |
+| `loadingSlowTimeout`    | number   | 30000   | Threshold for slow loading indicator (ms)                      |
+| `onLoadingSlow`         | function | -       | Called when loading exceeds threshold: `(query) => void`       |
+| `shouldRetryWhenError`  | boolean  | false   | Automatically retry failed queries                             |
+| `retryCount`            | number   | 5       | Maximum retry attempts                                         |
+| `retryDelay`            | number   | 10000   | Delay between retries in ms                                    |
 | `autoClearExpiredCache` | number   | 60000   | Auto-cleanup expired cache entries (ms). Set `0` to disable    |
 
 </details>
@@ -521,18 +521,58 @@ Fetch data from a specific endpoint.
 - `options.groups`: Array of group tags (query appears in multiple groups)
 - `options.*`: Any Query.setup() option can be overridden locally for this query
 
+**Note:**
+
+> 1. Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
+
+### Example
+
+```ts
+Query.setup({
+	cacheTimeout: 60000,
+	shouldRetryWhenError: true
+});
+
+const users = useQuery('/users', {
+	cacheTimeout: 0,
+	shouldRetryWhenError: false
+});
+```
+
+The local options apply only to this query instance and override the global defaults configured via Query.setup().
+
+> 2. Query identity is based on endpoint. If the same endpoint is registered multiple times, all subsequent registrations reuse the original query instance. Group metadata is only assigned during the first registration.
+
+### Example
+
+```ts
+const q1 = useQuery('/users', {
+	group: 'admin'
+});
+
+const q2 = useQuery('/users', {
+	group: 'staff'
+});
+
+q1 === q2; // true
+
+Query.group('admin'); // contains query
+Query.group('staff'); // empty
+```
+
+Because query identity is based on endpoint, the second registration reuses the existing query instance rather than creating a new one.
+
 **Cache timeout behavior:**
 
 - Each cache entry stores the `cacheTimeout` that was active when the query result was cached
 - `Query.clearExpiredCache()` uses that stored timeout per entry, not the global `Query.cacheTimeout`
-
-**Note:** Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
 
 **Group Management:**
 
 - A query can have either a single `group` OR multiple `groups` tags (or both)
 - `Query.group('tag')` returns all queries with that tag (from either group or groups)
 - `Query.clearGroup('tag')` clears all queries associated with that tag
+- If you need different group tags, use a different endpoint key or clear the existing query before recreating it
 
 ```typescript
 // Single group
@@ -651,8 +691,8 @@ query.data; // The fetched data (T | null)
 query.isLoading; // Boolean - currently fetching?
 query.isError; // boolean | string | TError (false when no error)
 query.endpoint; // The API endpoint string
-query.group; // Assigned group tag (if any)
-query.groups; // Assigned group tags array (if any)
+query.group; // Assigned group tag (if any, set on first registration)
+query.groups; // Assigned group tags array (if any, set on first registration)
 ```
 
 **Methods:**
