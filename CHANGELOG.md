@@ -2,6 +2,25 @@
 
 All notable changes to this project will documented in this file.
 
+## [0.0.7] - 2026-06-07
+
+### ✨ New Features
+
+- **`autoClearExpiredCache`**: New option to auto-clean expired cache entries on interval (default: `60000`ms). SSR-safe. Works out of the box — no setup() call required, timer starts on module init. **No user action needed.**
+- **`clearExpiredCache()`**: New method to manually clear only expired cache entries. Preserves state/data — UI keeps showing stale data until next fetch, no sudden blank screen.
+- **`StateQuery<T, TError>`**: Added second generic `TError` (defaults to `never`) for typed error handling. `isError` is now typed as `boolean | string | TError` instead of `boolean | string`.
+
+### 📚 Documentation
+
+- Added `autoClearExpiredCache` to setup example & options table.
+- Clarified `isError` semantics — typed as `boolean | string | TError`.
+- Clarified query identity, group management, per-entry cache TTL behavior.
+- Updated known limitations: auto-cleanup acknowledged as mitigation.
+
+### ⚠️ Breaking Changes
+
+**None** — All features are additive. Existing code continues to work.
+
 ## [0.0.6] - 2026-03-20
 
 ### ♻️ Refactor
