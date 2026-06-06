@@ -411,7 +411,8 @@ Query.setup({
 	},
 	shouldRetryWhenError: true, // Enable automatic retries
 	retryCount: 5, // Number of retry attempts
-	retryDelay: 10000 // Delay between retries (ms)
+	retryDelay: 10000, // Delay between retries (ms)
+	autoClearExpiredCache: 60000 // Auto-cleanup expired cache every 60s
 });
 ```
 
@@ -430,6 +431,7 @@ Query.setup({
 | `shouldRetryWhenError` | boolean  | false   | Automatically retry failed queries                             |
 | `retryCount`           | number   | 5       | Maximum retry attempts                                         |
 | `retryDelay`           | number   | 10000   | Delay between retries in ms                                    |
+| `autoClearExpiredCache` | number   | 60000   | Auto-cleanup expired cache entries (ms). Set `0` to disable    |
 
 </details>
 
@@ -522,7 +524,7 @@ Fetch data from a specific endpoint.
 **Cache timeout behavior:**
 
 - Each cache entry stores the `cacheTimeout` that was active when the query result was cached
-- `Query.clearExpired()` uses that stored timeout per entry, not the global `Query.cacheTimeout`
+- `Query.clearExpiredCache()` uses that stored timeout per entry, not the global `Query.cacheTimeout`
 
 **Note:** Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
 
@@ -622,12 +624,12 @@ Clears all queries in a specific group.
 Query.clearGroup('user-data');
 ```
 
-#### `Query.clearExpired()`
+#### `Query.clearExpiredCache()`
 
 Clears only expired cache entries based on each entry's stored `cacheTimeout`.
 
 ```typescript
-Query.clearExpired();
+Query.clearExpiredCache();
 ```
 
 #### `Query.group(group)`
@@ -664,26 +666,26 @@ query.clear()              // Clear this specific query
 
 ## Known Limitations & Risks
 
-### Memory Growth (Allowed Risk)
+### Memory Growth (Mitigated)
 
-The library maintains an unbounded cache and state objects for each unique endpoint. This is by design to maximize performance:
+The library maintains a cache for each unique endpoint. By default, expired cache entries are automatically cleaned every 60 seconds (`autoClearExpiredCache`), keeping memory growth in check for most usage patterns:
 
-- **Acceptable for**: Most applications with <10k unique queries (typical use: static endpoints + pagination)
-- **Risk**: Heavy dynamic usage may accumulate memory bloat over extended sessions
+- **Safe for**: Most applications with <10k unique queries (typical use: static endpoints + pagination)
+- **Risk**: Heavy dynamic usage may still accumulate memory over extended sessions
 - **Examples of concern**:
-  - Fetching 10,000+ unique filtered queries without cleanup
+  - Entries with `cacheTimeout: -1` (never expire) accumulate indefinitely
+  - Fetching 10,000+ unique filtered queries aggressively without cleanup
   - Long-running SPA with continuous dynamic parameterization
-  - No automatic eviction of old entries
 
 **Mitigation strategies**:
 
 - Call `Query.clear(endpoint)` for stale queries you no longer need
 - Call `Query.clearGroup(group)` to batch-clear related queries
-- Call `Query.clearExpired()` to remove only expired cache entries while preserving fresh ones
+- Call `Query.clearExpiredCache()` manually to remove only expired cache entries
+- Set `autoClearExpiredCache` higher/lower via `Query.setup()` or disable with `0`
 - Consider implementing LRU eviction in your application layer
-- Monitor memory in dev tools for long-running sessions
 
-**Status**: Acknowledged and accepted tradeoff for performance. Not a bug, design choice.
+**Status**: Partially mitigated by default auto-cleanup. Heavy edge cases may still require manual intervention.
 
 ## Changelog
 
