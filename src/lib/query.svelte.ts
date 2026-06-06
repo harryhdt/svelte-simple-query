@@ -164,9 +164,9 @@ let CacheStore = {} as {
 	} | null;
 };
 
-type StateQuery<T> = {
+type StateQuery<T, TError = never> = {
 	data: T | null;
-	isError: boolean | string;
+	isError: boolean | string | TError;
 	isLoading: boolean;
 	fetch: () => Promise<void>;
 	refetch: (options?: { disableLoading: boolean }) => Promise<void>;
@@ -177,7 +177,7 @@ type StateQuery<T> = {
 	groups?: string[];
 };
 
-export const useQuery = <T>(
+export const useQuery = <T, TError = never>(
 	endpoint: string,
 	options?: QueryOptions & { group?: string; groups?: string[] }
 ) => {
@@ -331,7 +331,7 @@ export const useQuery = <T>(
 		};
 	}
 	//
-	return state[endpoint] as StateQuery<T>;
+	return state[endpoint] as StateQuery<T, TError>;
 };
 
 type MutateOptions = {
@@ -342,7 +342,7 @@ type MutateOptions = {
 	refetch?: boolean;
 };
 
-export const useSingleQuery = <T>(
+export const useSingleQuery = <T, TError = never>(
 	endpointCallBack: (key: string) => string,
 	options?: QueryOptions & { group?: string; groups?: string[] }
 ) => {
@@ -356,7 +356,7 @@ export const useSingleQuery = <T>(
 			}
 		}
 	) as {
-		[key: string]: ReturnType<typeof useQuery<T>>;
+		[key: string]: ReturnType<typeof useQuery<T, TError>>;
 	};
 };
 export const useDynamicQueries = useSingleQuery;

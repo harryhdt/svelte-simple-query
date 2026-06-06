@@ -469,7 +469,8 @@ Query.setup({
 
 ### Error Object Structure
 
-The `isError` field contains either a string or Error object with additional properties:
+The `isError` field is `false` when there is no error. Otherwise, it contains whatever value your active fetcher throws (typed as `boolean | string | TError`).
+The default fetcher throws an `Error` augmented with `status` and `info`:
 
 ```typescript
 if (query.isError) {
@@ -646,7 +647,7 @@ Each query object provides:
 ```typescript
 query.data; // The fetched data (T | null)
 query.isLoading; // Boolean - currently fetching?
-query.isError; // Error message string or false
+query.isError; // boolean | string | TError (false when no error)
 query.endpoint; // The API endpoint string
 query.group; // Assigned group tag (if any)
 query.groups; // Assigned group tags array (if any)
