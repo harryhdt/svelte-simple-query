@@ -147,7 +147,7 @@ let CacheStore = {} as {
 	} | null;
 };
 
-type StateQuery<T, TError = unknown> = {
+type StateQuery<T, TError = never> = {
 	data: T | null;
 	isError: boolean | string | TError;
 	isLoading: boolean;
@@ -160,7 +160,7 @@ type StateQuery<T, TError = unknown> = {
 	groups?: string[];
 };
 
-export const useQuery = <T, TError = unknown>(
+export const useQuery = <T, TError = never>(
 	endpoint: string,
 	options?: QueryOptions & { group?: string; groups?: string[] }
 ) => {
@@ -323,7 +323,7 @@ type MutateOptions = {
 	refetch?: boolean;
 };
 
-export const useSingleQuery = <T, TError = unknown>(
+export const useSingleQuery = <T, TError = never>(
 	endpointCallBack: (key: string) => string,
 	options?: QueryOptions & { group?: string; groups?: string[] }
 ) => {
