@@ -1,3 +1,5 @@
+let autoClearExpiredCacheInterval: ReturnType<typeof setInterval> | undefined;
+
 const defaultFetcher = async (url: string) => {
 	const res = await fetch(Query.baseURI + url, {
 		...Query.baseInit
@@ -33,9 +35,10 @@ type QueryShape = {
 	onLoadingSlow?: (query: StateQuery<any>) => void;
 	retryCount?: number;
 	retryDelay?: number;
+	autoClearExpiredCache?: number;
 	shouldRetryWhenError?: boolean;
 	clear: (endpoint?: string) => void;
-	clearExpired: () => void;
+	clearExpiredCache: () => void;
 	clearGroup: (group?: string) => void;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	group: (group: string) => StateQuery<any>[];
@@ -47,6 +50,7 @@ export const Query: QueryShape = {
 	baseInit: {},
 	fetcher: defaultFetcher,
 	cacheTimeout: 2000,
+	autoClearExpiredCache: 60000,
 	setup: (options: QueryOptions) => {
 		// Safely update Query
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -64,10 +68,26 @@ export const Query: QueryShape = {
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-expect-error
 		delete options.group;
+		// Clear previous timer
+		if (autoClearExpiredCacheInterval) {
+			clearInterval(autoClearExpiredCacheInterval);
+			autoClearExpiredCacheInterval = undefined;
+		}
 		Object.assign(Query, {
 			...Query,
 			...options
 		}); // Safely update Query
+		// Start new timer if configured
+		if (
+			typeof window !== 'undefined' &&
+			Query.autoClearExpiredCache &&
+			Query.autoClearExpiredCache > 0
+		) {
+			autoClearExpiredCacheInterval = setInterval(
+				() => { Query.clearExpiredCache(); },
+				Query.autoClearExpiredCache
+			);
+		}
 	},
 	bagHit: {} as Record<string, number>,
 	clear: (endpoint) => {
@@ -89,7 +109,7 @@ export const Query: QueryShape = {
 			return;
 		}
 	},
-	clearExpired: () => {
+	clearExpiredCache: () => {
 		Object.keys(CacheStore).forEach((key) => {
 			const cache = CacheStore[key];
 			if (!cache || cache.cacheTimeout === -1 || Date.now() - cache.time <= cache.cacheTimeout) {
@@ -97,11 +117,6 @@ export const Query: QueryShape = {
 			}
 			CacheStore[key] = null;
 			Query.bagHit[key] = 0;
-			if (state[key]) {
-				state[key].data = null;
-				state[key].isError = false;
-				state[key].isLoading = false;
-			}
 		});
 	},
 	clearGroup: (group) => {
@@ -126,12 +141,20 @@ export const Query: QueryShape = {
 	}
 };
 
+// Start auto-cleanup for expired cache by default
+if (typeof window !== 'undefined' && Query.autoClearExpiredCache) {
+	autoClearExpiredCacheInterval = setInterval(
+		() => { Query.clearExpiredCache(); },
+		Query.autoClearExpiredCache
+	);
+}
+
 // Use QueryShape to define QueryOptions
 type QueryOptions = Omit<
 	{
 		[key in keyof QueryShape]?: QueryShape[key];
 	},
-	'setup' | 'bagHit' | 'clear' | 'clearExpired' | 'clearGroup' | 'group'
+	'setup' | 'bagHit' | 'clear' | 'clearExpiredCache' | 'clearGroup' | 'group'
 >;
 
 const state = $state({ system: {} }) as {
@@ -151,10 +174,10 @@ const state = $state({ system: {} }) as {
 	};
 };
 
-// Known Limitation: state and CacheStore objects grow unbounded for dynamic endpoints.
-// After many paginated/filtered queries, old entries remain in memory.
-// Acceptable for most apps, but heavy dynamic usage (10k+ unique queries) may cause memory bloat.
-// Consider: implementing LRU eviction, manual purge(), or accepting the limitation.
+// Known Limitation: CacheStore grows unbounded for dynamic endpoints.
+// autoClearExpiredCache (default 60s) mitigates this by clearing expired entries,
+// but entries with cacheTimeout: -1 or aggressive dynamic usage may still accumulate.
+// Heavy usage (10k+ unique queries) may require LRU eviction or manual purge.
 let CacheStore = {} as {
 	[key: string]: {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -209,7 +232,9 @@ export const useQuery = <T, TError = never>(
 	//
 	const TheQuery = { ...Query };
 	if (options) {
-		TheQuery.setup(options);
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		const { group, groups, ...queryOpts } = options; // Extract group and groups to avoid overwriting state[endpoint].group/groups
+		Object.assign(TheQuery, queryOpts);
 	}
 	const fetchData = async () => {
 		try {
