@@ -561,12 +561,11 @@ Query.group('staff'); // empty
 ```
 
 Because query identity is based on endpoint, the second registration reuses the existing query instance rather than creating a new one.
+
 **Cache timeout behavior:**
 
 - Each cache entry stores the `cacheTimeout` that was active when the query result was cached
 - `Query.clearExpiredCache()` uses that stored timeout per entry, not the global `Query.cacheTimeout`
-
-**Note:** Options passed to useQuery apply only to that query instance and override global settings (Query.setup()).
 
 **Group Management:**
 
